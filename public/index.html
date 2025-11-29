@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Notion Suche</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 10px;
+      background: white;
+    }
+    #search-box {
+      display: flex;
+      width: 100%;
+    }
+    #q {
+      flex-grow: 1;
+      font-size: 16px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    #go {
+      font-size: 16px;
+      padding: 8px 12px;
+      margin-left: 8px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    #go:hover {
+      background-color: #0056b3;
+    }
+    #res {
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 15px;
+    }
+    #res li {
+      margin-bottom: 15px; 
+      border-bottom: 1px dashed #eee;
+      padding-bottom: 5px;
+    }
+    #res a {
+      text-decoration: none;
+      color: #000;
+      font-size: 15px;
+      font-weight: bold; 
+      display: block;
+    }
+    .snippet {
+        display: block;
+        color: #555;
+        font-size: 13px;
+        margin-top: 3px;
+    }
+    #status {
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="search-box">
+    <input id="q" type="text" placeholder="Notion durchsuchen...">
+    <button id="go">Suchen</button>
+  </div>
+  
+  <div id="status"></div>
+  <ul id="res"></ul>
+
+  <script>
+    const goButton = document.getElementById('go');
+    const queryInput = document.getElementById('q');
+    const resultsList = document.getElementById('res');
+    const statusText = document.getElementById('status');
+
+    async function runSearch() {
+      const query = queryInput.value.trim();
+      if (!query) return;
+
+      statusText.textContent = 'Suche und hole Snippets... (kann etwas dauern)';
+      resultsList.innerHTML = '';
+
+      try {
+        const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (!data.ok) {
+          throw new Error(data.error || 'Unbekannter Fehler');
+        }
+
+        if (data.items.length === 0) {
+          statusText.textContent = 'Nichts gefunden.';
+          return;
+        }
+
+        statusText.textContent = `${data.items.length} Treffer gefunden.`;
+        
+        // Ergebnisse als Links anzeigen
+        data.items.forEach(item => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = item.url;
+          a.textContent = `📄 ${item.title}`;
+          a.target = "_blank";
+          li.appendChild(a);
+          
+          if (item.snippet) {
+            const span = document.createElement('span');
+            span.className = 'snippet';
+            span.textContent = item.snippet;
+            li.appendChild(span);
+          }
+          
+          resultsList.appendChild(li);
+        });
+
+      } catch (err) {
+        statusText.textContent = 'Fehler: ' + err.message;
+        console.error(err);
+      }
+    }
+
+    goButton.onclick = runSearch;
+    queryInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        runSearch();
+      }
+    });
+  </script></body></html>
